@@ -72,14 +72,13 @@ function checkWallet() {
         balance: balance,
       };
 
+      console.log(walletHash);
+
       if (walletData.balance > 0) {
         return MgWalletWithBalance.create(walletData);
       } else {
         return MgWalletNoBalance.create({ ...walletData, balance: 0 });
       }
-    })
-    .then(() => {
-      console.log(walletData.walletHash);
     })
     .catch((err) => {
       if (err.response && err.response.status === 429) {
@@ -97,15 +96,17 @@ function checkWallet() {
     });
 }
 
-// Ejecutar múltiples verificaciones de wallets continuamente
+// Ejecutar verificaciones de wallets continuamente, una por una
 function main() {
   loadDictionary()
     .then(() => {
       function executeChecks() {
-        const promises = Array.from({ length: 10 }, () => checkWallet());
-        Promise.all(promises)
+        const startTime = Date.now();
+        checkWallet()
           .then(() => {
-            setTimeout(executeChecks, 1000); // Esperar 1 segundo antes de la siguiente ronda de peticiones
+            const elapsedTime = Date.now() - startTime;
+            const delay = Math.max(0, 1000 - elapsedTime); // Asegurar que pase al menos 1 segundo entre peticiones
+            setTimeout(executeChecks, delay);
           })
           .catch((err) => {
             console.error(err);
